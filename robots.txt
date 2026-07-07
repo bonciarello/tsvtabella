@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://cristianporco.it/app/convertitore-di-file-tsv-a-markdown-con-anteprima-tabella/sitemap.xml

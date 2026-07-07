@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convertitore TSV a Markdown — Trasforma dati tabulari in tabelle Markdown</title>
+  <meta name="description" content="Carica un file TSV e convertilo istantaneamente in una tabella Markdown ben formattata, con anteprima renderizzata. Strumento gratuito per documentazione tecnica, report e README.">
+
+  <!-- Canonical -->
+  <link rel="canonical" href="https://cristianporco.it/app/convertitore-di-file-tsv-a-markdown-con-anteprima-tabella/">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Convertitore TSV a Markdown con anteprima tabella">
+  <meta property="og:description" content="Carica un file TSV e ottieni subito il codice Markdown corrispondente, con anteprima della tabella renderizzata.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://cristianporco.it/app/convertitore-di-file-tsv-a-markdown-con-anteprima-tabella/">
+  <meta property="og:locale" content="it_IT">
+
+  <!-- JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Convertitore TSV a Markdown",
+    "url": "https://cristianporco.it/app/convertitore-di-file-tsv-a-markdown-con-anteprima-tabella/",
+    "description": "Strumento web che converte file TSV (Tab-Separated Values) in tabelle Markdown con anteprima renderizzata.",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "All",
+    "browserRequirements": "Requires JavaScript",
+    "author": {
+      "@type": "Person",
+      "name": "Cristian Porco"
+    }
+  }
+  </script>
+
+  <!-- Fonts: Fraunces (headings), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── Reset & Tokens ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Palette — Spectral Data */
+      --color-bg:        #F8FAFE;
+      --color-surface:   #FFFFFF;
+      --color-primary:   #4F46E5;  /* indigo-600 */
+      --color-primary-hover: #4338CA;
+      --color-accent:    #F43F5E;  /* rose-500 */
+      --color-accent-hover: #E11D48;
+      --color-text:      #0F172A;  /* slate-900 */
+      --color-text-secondary: #64748B; /* slate-500 */
+      --color-border:    #E2E8F0;  /* slate-200 */
+      --color-border-strong: #CBD5E1; /* slate-300 */
+      --color-success:   #10B981;  /* emerald-500 */
+      --color-error:     #EF4444;  /* red-500 */
+      --color-error-bg:  #FEF2F2;  /* red-50 */
+      --color-code-bg:   #F1F5F9;  /* slate-100 */
+      --color-focus:     #4F46E5;
+      --color-upload-bg: #FAFBFC;
+      --color-upload-line: #E2E8F0;
+
+      /* Typography */
+      --font-display: 'Fraunces', 'Georgia', 'Times New Roman', serif;
+      --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono:    'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+
+      /* Spacing (4px grid) */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      --space-12: 48px;
+
+      /* Radii */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+
+      /* Type scale */
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.375rem;
+      --text-2xl:  1.75rem;
+      --text-3xl:  2.25rem;
+
+      /* Motion */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    /* ── Base ──────────────────────────────────────────────────────── */
+    html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      line-height: 1.6;
+      color: var(--color-text);
+      background: var(--color-bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Focus ring */
+    :focus-visible {
+      outline: 2.5px solid var(--color-focus);
+      outline-offset: 3px;
+      border-radius: var(--radius-sm);
+    }
+    :focus:not(:focus-visible) { outline: none; }
+
+    /* Skip link */
+    .skip-link {
+      position: absolute; top: -100px; left: var(--space-4);
+      background: var(--color-primary); color: #fff; padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-sm); z-index: 100; font-weight: 500;
+      text-decoration: none; transition: top 200ms var(--ease-out);
+    }
+    .skip-link:focus { top: var(--space-4); }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* ── Layout ────────────────────────────────────────────────────── */
+    .page { max-width: 900px; margin: 0 auto; padding: var(--space-4) var(--space-4) var(--space-10); width: 100%; }
+
+    /* ── Header ────────────────────────────────────────────────────── */
+    .app-header {
+      padding: var(--space-8) 0 var(--space-6);
+      border-bottom: 1px solid var(--color-border);
+      margin-bottom: var(--space-8);
+    }
+    .app-header__eyebrow {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-primary);
+      margin-bottom: var(--space-2);
+    }
+    .app-header h1 {
+      font-family: var(--font-display);
+      font-size: var(--text-3xl);
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--color-text);
+      letter-spacing: -0.02em;
+    }
+    .app-header__lead {
+      color: var(--color-text-secondary);
+      font-size: var(--text-lg);
+      margin-top: var(--space-2);
+      max-width: 62ch;
+    }
+
+    /* ── Data ribbon (signature element) ───────────────────────────── */
+    .data-ribbon {
+      height: 4px;
+      background: var(--color-primary);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: var(--space-8);
+      border-radius: 0 0 2px 2px;
+    }
+    .data-ribbon::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 6px,
+        rgba(255,255,255,0.15) 6px,
+        rgba(255,255,255,0.15) 8px
+      );
+    }
+    .data-ribbon__accent {
+      position: absolute; right: 0; top: 0; bottom: 0;
+      width: 40px;
+      background: var(--color-accent);
+      border-radius: 0 0 2px 0;
+    }
+
+    /* ── Upload Zone — "Data Card" ─────────────────────────────────── */
+    .upload-card {
+      background: var(--color-surface);
+      border: 2px dashed var(--color-border-strong);
+      border-radius: var(--radius-lg);
+      padding: var(--space-10) var(--space-6);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 200ms var(--ease-out), background 200ms var(--ease-out);
+      position: relative;
+      overflow: hidden;
+    }
+    /* Punch-card lines */
+    .upload-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 11px,
+        var(--color-upload-line) 11px,
+        var(--color-upload-line) 12px
+      );
+      opacity: 0.5;
+      pointer-events: none;
+      border-radius: var(--radius-lg);
+    }
+    .upload-card:hover, .upload-card.dragover {
+      border-color: var(--color-primary);
+      background: #F5F3FF;
+    }
+    .upload-card__inner {
+      position: relative;
+      z-index: 1;
+    }
+    .upload-card__icon {
+      width: 48px; height: 48px;
+      color: var(--color-primary);
+      margin: 0 auto var(--space-4);
+    }
+    .upload-card__title {
+      font-family: var(--font-display);
+      font-size: var(--text-xl);
+      font-weight: 500;
+      color: var(--color-text);
+      margin-bottom: var(--space-1);
+    }
+    .upload-card__hint {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-4);
+    }
+    .upload-card__btn {
+      display: inline-block;
+      background: var(--color-primary);
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      padding: var(--space-3) var(--space-6);
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      min-height: 44px;
+      min-width: 44px;
+      transition: background 150ms var(--ease-out);
+      text-decoration: none;
+    }
+    .upload-card__btn:hover { background: var(--color-primary-hover); }
+    .upload-card__formats {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+      margin-top: var(--space-3);
+    }
+    .upload-card__input {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+
+    /* ── Error ─────────────────────────────────────────────────────── */
+    .error-banner {
+      display: none;
+      background: var(--color-error-bg);
+      border: 1px solid #FECACA;
+      border-radius: var(--radius-md);
+      padding: var(--space-4) var(--space-5);
+      margin-top: var(--space-6);
+      color: #991B1B;
+      font-size: var(--text-sm);
+      align-items: flex-start;
+      gap: var(--space-3);
+    }
+    .error-banner--visible { display: flex; }
+    .error-banner__icon {
+      width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px;
+      color: var(--color-error);
+    }
+    .error-banner__text { flex: 1; line-height: 1.5; }
+
+    /* ── Results ───────────────────────────────────────────────────── */
+    .results { display: none; margin-top: var(--space-8); }
+    .results--visible { display: block; }
+
+    .results__meta {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-5);
+      display: flex; gap: var(--space-5); flex-wrap: wrap;
+    }
+    .results__meta span { white-space: nowrap; }
+    .results__meta strong { color: var(--color-primary); }
+
+    /* ── Section ───────────────────────────────────────────────────── */
+    .section { margin-bottom: var(--space-6); }
+    .section__header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: var(--space-3); flex-wrap: wrap; gap: var(--space-2);
+    }
+    .section__title {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: 500;
+      color: var(--color-text);
+    }
+    .section__actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+    /* ── Buttons ───────────────────────────────────────────────────── */
+    .btn {
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border-strong);
+      background: var(--color-surface);
+      color: var(--color-text);
+      cursor: pointer;
+      min-height: 40px;
+      min-width: 44px;
+      display: inline-flex; align-items: center; gap: var(--space-2);
+      transition: background 150ms var(--ease-out), border-color 150ms var(--ease-out);
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .btn:hover { background: var(--color-code-bg); border-color: var(--color-text-secondary); }
+    .btn--primary {
+      background: var(--color-primary); color: #fff; border-color: var(--color-primary);
+    }
+    .btn--primary:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); }
+    .btn--sm { font-size: var(--text-xs); padding: 6px var(--space-3); min-height: 32px; }
+    .btn .btn__icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ── Table preview ─────────────────────────────────────────────── */
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+    }
+    .preview-table {
+      width: 100%; border-collapse: collapse;
+      font-size: var(--text-sm); line-height: 1.5;
+      font-variant-numeric: tabular-nums;
+    }
+    .preview-table thead {
+      background: var(--color-code-bg);
+      border-bottom: 2px solid var(--color-border-strong);
+    }
+    .preview-table th {
+      font-weight: 600; color: var(--color-text);
+      padding: var(--space-3) var(--space-4); text-align: left;
+      white-space: nowrap; font-size: var(--text-xs);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .preview-table td {
+      padding: var(--space-2) var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+      color: var(--color-text);
+    }
+    .preview-table tbody tr:last-child td { border-bottom: none; }
+    .preview-table tbody tr:hover td { background: #F8FAFC; }
+
+    /* ── Code block ────────────────────────────────────────────────── */
+    .code-block {
+      position: relative;
+      background: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .code-block pre {
+      padding: var(--space-5);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      line-height: 1.65;
+      color: var(--color-text);
+      margin: 0;
+      white-space: pre;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .code-block__lang {
+      position: absolute; top: var(--space-2); right: var(--space-3);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+      background: var(--color-surface);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--color-border);
+      pointer-events: none;
+    }
+
+    /* ── Copy feedback ─────────────────────────────────────────────── */
+    .copied-toast {
+      position: fixed; bottom: var(--space-6); left: 50%; transform: translateX(-50%);
+      background: var(--color-text); color: #fff;
+      padding: var(--space-3) var(--space-5);
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm); font-weight: 500;
+      opacity: 0; pointer-events: none;
+      transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+      z-index: 50;
+    }
+    .copied-toast--visible { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+
+    /* ── Footer ────────────────────────────────────────────────────── */
+    .app-footer {
+      margin-top: auto;
+      padding: var(--space-6) 0;
+      border-top: 1px solid var(--color-border);
+      text-align: center;
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+    }
+    .app-footer a { color: var(--color-primary); text-decoration: underline; }
+    .app-footer a:hover { color: var(--color-primary-hover); }
+
+    /* ── Responsive ────────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .page { padding: var(--space-3) var(--space-3) var(--space-8); }
+      .app-header { padding: var(--space-5) 0 var(--space-4); margin-bottom: var(--space-5); }
+      .app-header h1 { font-size: var(--text-2xl); }
+      .app-header__lead { font-size: var(--text-base); }
+      .upload-card { padding: var(--space-6) var(--space-4); }
+      .upload-card__title { font-size: var(--text-lg); }
+      .section__header { flex-direction: column; align-items: flex-start; }
+      .section__title { font-size: var(--text-base); }
+      .preview-table { font-size: var(--text-xs); }
+      .preview-table th, .preview-table td { padding: var(--space-2) var(--space-3); }
+      .code-block pre { font-size: var(--text-xs); padding: var(--space-4); }
+      .results__meta { flex-direction: column; gap: var(--space-1); }
+    }
+
+    @media (min-width: 641px) and (max-width: 1024px) {
+      .page { padding: var(--space-4) var(--space-5) var(--space-10); }
+    }
+
+    /* Print */
+    @media print {
+      .data-ribbon, .upload-card, .btn, .section__actions, .copied-toast, .app-footer, .skip-link { display: none !important; }
+      .code-block pre { max-height: none; white-space: pre-wrap; }
+      body { background: #fff; }
+    }
+  </style>
+</head>
+<body>
+
+  <a href="#main-content" class="skip-link">Salta al contenuto principale</a>
+
+  <div class="page">
+
+    <!-- ── Header ────────────────────────────── -->
+    <header class="app-header" role="banner">
+      <p class="app-header__eyebrow">Strumento dati</p>
+      <h1>Convertitore TSV&nbsp;→&nbsp;Markdown</h1>
+      <p class="app-header__lead">
+        Carica un file TSV (Tab-Separated Values) e convertilo in una tabella Markdown
+        pronta per la tua documentazione. Anteprima dal vivo e allineamento automatico
+        delle colonne numeriche.
+      </p>
+    </header>
+
+    <!-- ── Data Ribbon ───────────────────────── -->
+    <div class="data-ribbon" aria-hidden="true"><div class="data-ribbon__accent"></div></div>
+
+    <!-- ── Main ──────────────────────────────── -->
+    <main id="main-content">
+
+      <!-- Upload Zone -->
+      <div class="upload-card" id="uploadZone" role="button" tabindex="0" aria-label="Carica un file TSV — clicca o trascina qui">
+        <div class="upload-card__inner">
+          <svg class="upload-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/>
+            <path d="M14 2v6h6"/>
+            <path d="M8 13h2"/>
+            <path d="M8 17h4"/>
+            <path d="M14 13h2"/>
+            <path d="M14 17h2"/>
+            <line x1="8" y1="13" x2="8" y2="13"/>
+            <line x1="8" y1="17" x2="8" y2="17"/>
+          </svg>
+          <p class="upload-card__title">Trascina qui il tuo file TSV</p>
+          <p class="upload-card__hint">oppure clicca per sfogliare il computer</p>
+          <span class="upload-card__btn">Scegli file TSV</span>
+          <p class="upload-card__formats">Formato accettato: .tsv (valori separati da tabulazione) &middot; Max 16&nbsp;MB</p>
+        </div>
+        <input type="file" accept=".tsv,.tab,.txt" class="upload-card__input" id="fileInput" aria-label="Seleziona un file TSV dal computer">
+      </div>
+
+      <!-- Error Banner -->
+      <div class="error-banner" id="errorBanner" role="alert" aria-live="assertive">
+        <svg class="error-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span class="error-banner__text" id="errorText"></span>
+      </div>
+
+      <!-- Results -->
+      <div class="results" id="results">
+        <!-- Meta -->
+        <div class="results__meta" id="resultsMeta" aria-live="polite"></div>
+
+        <!-- Anteprima Tabella -->
+        <section class="section" aria-labelledby="preview-heading">
+          <div class="section__header">
+            <h2 class="section__title" id="preview-heading">Anteprima tabella</h2>
+            <div class="section__actions">
+              <button class="btn btn--sm" id="btnDownloadMd" type="button">
+                <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Scarica .md
+              </button>
+            </div>
+          </div>
+          <div class="table-wrapper" id="tablePreview" tabindex="0" aria-label="Anteprima della tabella renderizzata. Scorri orizzontalmente per vedere tutte le colonne."></div>
+        </section>
+
+        <!-- Codice Markdown -->
+        <section class="section" aria-labelledby="code-heading">
+          <div class="section__header">
+            <h2 class="section__title" id="code-heading">Codice Markdown</h2>
+            <div class="section__actions">
+              <button class="btn btn--sm btn--primary" id="btnCopy" type="button">
+                <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copia
+              </button>
+            </div>
+          </div>
+          <div class="code-block">
+            <span class="code-block__lang">markdown</span>
+            <pre id="codeOutput" tabindex="0" aria-label="Codice Markdown generato. Seleziona e copia il testo."></pre>
+          </div>
+        </section>
+      </div>
+
+    </main>
+
+    <!-- ── Footer ────────────────────────────── -->
+    <footer class="app-footer" role="contentinfo">
+      <p>Convertitore TSV a Markdown &mdash; strumento gratuito per documentazione e report.
+      <br>Nessun dato viene salvato: l'elaborazione avviene interamente lato server e il file viene scartato subito dopo.</p>
+    </footer>
+  </div>
+
+  <!-- Toast copia -->
+  <div class="copied-toast" id="copiedToast" aria-live="polite" aria-atomic="true">Copiato negli appunti</div>
+
+  <script>
+    /* ── DOM refs ──────────────────────────────────────────────────── */
+    const uploadZone  = document.getElementById('uploadZone');
+    const fileInput   = document.getElementById('fileInput');
+    const errorBanner = document.getElementById('errorBanner');
+    const errorText   = document.getElementById('errorText');
+    const results     = document.getElementById('results');
+    const resultsMeta = document.getElementById('resultsMeta');
+    const tablePreview= document.getElementById('tablePreview');
+    const codeOutput  = document.getElementById('codeOutput');
+    const btnCopy     = document.getElementById('btnCopy');
+    const btnDownload = document.getElementById('btnDownloadMd');
+    const copiedToast = document.getElementById('copiedToast');
+
+    let currentMarkdown = '';
+    let currentFilename = 'tabella.md';
+
+    /* ── Helpers ───────────────────────────────────────────────────── */
+    function showError(msg) {
+      errorText.textContent = msg;
+      errorBanner.classList.add('error-banner--visible');
+      results.classList.remove('results--visible');
+    }
+
+    function hideError() {
+      errorBanner.classList.remove('error-banner--visible');
+    }
+
+    function showResults(data) {
+      hideError();
+      // Meta info
+      resultsMeta.innerHTML =
+        `<span><strong>${data.row_count}</strong> righe dati</span>` +
+        `<span><strong>${data.col_count}</strong> colonne</span>` +
+        (data.alignments ? `<span>Allineamento: ${data.alignments.map(function(a){return a==='right'?'▶ numerico':a}).join(', ')}</span>` : '');
+      // Table preview
+      tablePreview.innerHTML = data.table_html;
+      // Code
+      codeOutput.textContent = data.markdown;
+      currentMarkdown = data.markdown;
+      // Show
+      results.classList.add('results--visible');
+      // Scroll to results (smoothly)
+      results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function showCopyToast() {
+      copiedToast.classList.add('copied-toast--visible');
+      clearTimeout(copiedToast._timeout);
+      copiedToast._timeout = setTimeout(function(){
+        copiedToast.classList.remove('copied-toast--visible');
+      }, 2200);
+    }
+
+    /* ── File processing ───────────────────────────────────────────── */
+    function processFile(file) {
+      hideError();
+      results.classList.remove('results--visible');
+      currentFilename = file.name.replace(/\.(tsv|tab|txt)$/i, '.md');
+
+      var formData = new FormData();
+      formData.append('file', file);
+
+      fetch('api/convert', {
+        method: 'POST',
+        body: formData
+      })
+      .then(function(resp){
+        return resp.json().then(function(data){
+          if (!resp.ok) {
+            throw new Error(data.error || 'Errore sconosciuto del server.');
+          }
+          return data;
+        });
+      })
+      .then(function(data){
+        showResults(data);
+      })
+      .catch(function(err){
+        showError(err.message || 'Si è verificato un errore durante la conversione. Riprova.');
+      });
+    }
+
+    /* ── Event listeners ───────────────────────────────────────────── */
+    // Click on upload zone
+    uploadZone.addEventListener('click', function(e){
+      if (e.target !== fileInput) {
+        fileInput.click();
+      }
+    });
+
+    // Keyboard on upload zone
+    uploadZone.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    // File selected via input
+    fileInput.addEventListener('change', function(){
+      if (fileInput.files && fileInput.files[0]) {
+        processFile(fileInput.files[0]);
+      }
+    });
+
+    // Drag & drop
+    uploadZone.addEventListener('dragover', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      uploadZone.classList.add('dragover');
+    });
+    uploadZone.addEventListener('dragleave', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      uploadZone.classList.remove('dragover');
+    });
+    uploadZone.addEventListener('drop', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      uploadZone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        processFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    // Copy button
+    btnCopy.addEventListener('click', function(){
+      if (!currentMarkdown) return;
+      navigator.clipboard.writeText(currentMarkdown).then(function(){
+        showCopyToast();
+        btnCopy.focus();
+      }).catch(function(){
+        // Fallback: select text
+        var range = document.createRange();
+        range.selectNodeContents(codeOutput);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        try { document.execCommand('copy'); showCopyToast(); } catch(e2){}
+        sel.removeAllRanges();
+      });
+    });
+
+    // Download button
+    btnDownload.addEventListener('click', function(){
+      if (!currentMarkdown) return;
+      var blob = new Blob([currentMarkdown], { type: 'text/markdown;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = currentFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // Keyboard shortcut for copy (Ctrl/Cmd+C on code block)
+    codeOutput.addEventListener('keydown', function(e){
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        // Let default work — browser handles selection copy
+      }
+    });
+  </script>
+
+</body>
+</html>
